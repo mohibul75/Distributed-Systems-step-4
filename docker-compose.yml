@@ -1,0 +1,91 @@
+version: '3'
+
+networks:
+  bdnet:
+    ipam:
+      config:
+        - subnet: 10.100.0.0/24
+
+services:
+
+    communication-dhaka :
+        image: purbo7512st4/cmm-api
+        environment:
+            - LOCATION=dhaka
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.3
+
+    ridesharing-dhaka :
+        image: purbo7512st4/rs-api
+        depends_on:
+            - communication-dhaka
+        environment:
+            - LOCATION=dhaka
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.2
+    rating-dhaka :
+        image: purbo7512st4/rating-api
+        depends_on:
+            - mongodb-dhaka
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.4
+    nginx-dhaka :
+        build: ./nginx/
+        depends_on:
+            - ridesharing-dhaka
+            - rating-dhaka
+        environment:
+            - RIDESHARING=ridesharing-dhaka
+            - RATING=rating-dhaka
+        command: /bin/sh -c "envsubst < /etc/nginx/conf.d/nginx.conf.template > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.10
+ 
+    mongodb-dhaka :
+        image: mongo
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.5
+
+    communication-chittagong :
+        image: purbo7512st4/cmm-api
+        environment:
+            - LOCATION=chittagong
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.23
+
+    ridesharing-chittagong :
+        image: purbo7512st4/rs-api
+        depends_on:
+            - communication-chittagong
+        environment:
+            - LOCATION=chittagong
+        restart: always
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.22
+           
+  
+   
+    nginx-chittagong :
+        build: ./nginx/
+        depends_on:
+            - ridesharing-chittagong
+            - rating-dhaka
+        environment:
+            - RIDESHARING=ridesharing-chittagong
+            - RATING=rating-dhaka
+        command: /bin/sh -c "envsubst < /etc/nginx/conf.d/nginx.conf.template > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"
+        networks:
+            bdnet:
+                ipv4_address: 10.100.0.21
